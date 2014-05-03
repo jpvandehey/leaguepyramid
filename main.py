@@ -22,16 +22,26 @@ import re
 import urllib2
 import random
 import hashlib
-import hmac
+import json
+import logging
 
 from google.appengine.ext import db
+
+API_PATH = 'https://prod.api.pvp.net/'
+#Move this to a seperate file in the application and add a GIT exclusion to it.
+API_KEY = '?api_key=1483e7e5-b3f5-464a-90cf-97eae090febc'
+SECRET = 'H3ll0myFr1enDS'
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
-def get_user_api(username):
-    pass
+def get_user_api(username, region):
+    api_user_by_name = 'api/lol/' + region + '/v1.4/summoner/by-name/'
+    url = API_PATH + 'api/lol/' + region.lower() + '/v1.4/summoner/by-name/' + username.lower() + '?api_key=1483e7e5-b3f5-464a-90cf-97eae090febc'
+    user_response = json.loads(urllib2.urlopen(url).read())
+    
+    return user_response
 
 def hash_cookie(s):
     h = hashlib.sha256(SECRET + s).hexdigest()
@@ -57,7 +67,12 @@ def valid_password(password):
 def verify_password(password, verify):
     return password == verify
 
-#Generic Handler class
+class User(db.Model):
+    username = db.StringProperty(required = True)
+    password = db.StringProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
+    summoner_id = db.IntegerProperty(required = True)
+
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
@@ -69,7 +84,6 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
-#Main Application Handler
 class MainHandler(Handler):
     def render_main(self):
         self.render("header.html")
@@ -79,17 +93,34 @@ class MainHandler(Handler):
         self.render_main()
         
 class SignupHandler(Handler):
-    def render_signup(self):
+    def render_signup(self, json="", password_error="", verify_error=""):
         self.render("header.html")
-        self.render("signup.html")
+        self.render("signup.html", json=json, password_error=password_error, verify_error=verify_error)
     
     def get(self):
         self.render_signup()
         
     def post(self):
+        password_error = ""
+        verify_error = ""
+        
         username = self.request.get('username')
         password = self.request.get('password')
         verify = self.request.get('verify')
+        region = self.request.get('region')
+        
+        if not valid_password(password):
+            password_error = "Please enter valid password."
+        
+        if not verify_password(password, verify):
+            verify_error = "Passwords do not match."
+        
+        if password_error != "" or verify_error != "":
+            self.render_signup(password_error=password_error, verify_error=verify_error)
+        else:
+            json = get_user_api(username, region)
+            logging.error(json)
+        
         
 app = webapp2.WSGIApplication([
     ('/', MainHandler),

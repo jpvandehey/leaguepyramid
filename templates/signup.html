@@ -1,11 +1,10 @@
 	<form method="post" action="/signup">
 		<input name="username" type="text" placeholder="Summoner Name"> Enter League of Legends Summoner Name
 		<br>
-		<input name="password" type="password" placeholder="Password"> Enter Password
+		<input name="password" type="password" placeholder="Password"> Enter Password | {{password_error}}
 		<br>
-		<input name="verify" type="password" placeholder="Verify Password"> Verify Password
+		<input name="verify" type="password" placeholder="Verify Password"> Verify Password | {{verify_error}}
 		<br>
-		<input type="submit">
 		<select name="region">
 			<option>NA</option>
 			<option>EUW</option>
@@ -14,6 +13,11 @@
 			<option>LAS</option>
 			<option>OCE</option>
 		</select> Select Region
+		<br>
+		<input type="submit">
 	</form>
+	<pre>
+		{{json}}
+	</pre>
 </body>
 </html>
