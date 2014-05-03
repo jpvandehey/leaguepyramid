@@ -1,0 +1,16 @@
+#main{
+	text-align: left;
+	margin: 0 auto;
+	position: fixed;
+	top: 50%;
+	left: 25%;
+}
+
+#search-bar{
+	width: 200%;
+}
+
+#search-submit{
+	width: 200%;
+	margin-top: 10px;
+}
