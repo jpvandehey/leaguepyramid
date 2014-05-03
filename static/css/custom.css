@@ -6,11 +6,6 @@
 	left: 25%;
 }
 
-#search-bar{
-	width: 200%;
-}
-
-#search-submit{
-	width: 200%;
-	margin-top: 10px;
+#logged_out_nav img{
+	height: 100%
 }
