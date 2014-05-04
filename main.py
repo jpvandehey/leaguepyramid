@@ -25,6 +25,7 @@ import hashlib
 import json
 import logging
 
+from google.appengine.api import memcache
 from google.appengine.ext import db
 
 API_PATH = 'https://prod.api.pvp.net/'
@@ -93,36 +94,83 @@ class MainHandler(Handler):
         self.render_main()
         
 class SignupHandler(Handler):
-    def render_signup(self, json="", password_error="", verify_error=""):
+    def render_signup(self, json="", summoner_image=""):
         self.render("header.html")
-        self.render("signup.html", json=json, password_error=password_error, verify_error=verify_error)
+        self.render("signup.html", json=json, summoner_image=summoner_image)
     
     def get(self):
         self.render_signup()
         
     def post(self):
-        password_error = ""
-        verify_error = ""
         
         username = self.request.get('username')
-        password = self.request.get('password')
-        verify = self.request.get('verify')
         region = self.request.get('region')
         
-        if not valid_password(password):
-            password_error = "Please enter valid password."
+        json = get_user_api(username, region)   
+                 
+        icon_id = json[username]['profileIconId']
+        summoner_id = json[username]['id']
+
+class verifySummonerHandler(Handler):
+    def render_verify(self, profile_icon="", username="", region=""):
+        self.render("header.html")
+        self.render("verifysummoner.html", profile_icon=profile_icon, username=username, region=region)
+    
+    def post(self):
+        username = self.request.get('username')
+        region = self.request.get('region')    
+        #Cache this   
+        json = get_user_api(username, region)
+        profile_icon = json[username]['profileIconId']
         
-        if not verify_password(password, verify):
-            verify_error = "Passwords do not match."
-        
-        if password_error != "" or verify_error != "":
-            self.render_signup(password_error=password_error, verify_error=verify_error)
+        if(profile_icon == '0'):
+            verify_icon = '1'
         else:
-            json = get_user_api(username, region)
-            logging.error(json)
+            verify_icon = '0'
+            
+        memcache.set('%s:verify_icon' % username, verify_icon)
+        
+        self.render_verify(profile_icon=verify_icon, username=username, region=region)
+        
+class confirmSummonerHandler(Handler):
+    
+    def render_errors(self, password_error="", verify_error="", verification_error="", verify_icon=""):                
+        self.render("header.html")
+        self.render("verifysummoner.html", )
+
+    def post(self):
+        password_error = ""
+        verify_error = ""
+        verification_error = ""
+        
+        username = self.request.get('username')
+        region = self.request.get('region')
+        verify_icon = memcache.get('%s:verify_icon' % username)
+        password = self.request.get('password')
+        verify = self.request.get('verify')
+        
+        json = get_user_api(username, region)
+        
+        if not valid_password(password):
+            password_error = "Invalid password."
+            
+        if not verify_password(password, verify):
+            verify_error = "Passwords don't match."
+        
+        if not valid_password(password) or not verify_password(password, verify) or verify_icon != json[username]['profileIconId']:
+            self.render_errors(password_error, verify_error, verification_error, verify_icon)
+        else:
+            self.response.headers['Content-Type'] = 'text/plain'
+            self.response.headers.add_header('Set-Cookie', 'username=%s' % str(hash_cookie(username)))            
+            g = User(username = username, password = hash_pw(password), summoner_id = json[username]['id'])
+            g.put()
+            logging.error('Success!')
+            self.redirect('/welcome')
         
         
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
-    ('/signup', SignupHandler,)
+    ('/signup', SignupHandler),
+    ('/verify_summoner', verifySummonerHandler),
+    ('/verify_summoner/confirm', confirmSummonerHandler),
 ], debug=True)

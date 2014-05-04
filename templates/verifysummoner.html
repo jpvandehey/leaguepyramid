@@ -1,0 +1,13 @@
+	<img src="/img/icons/{{profile_icon}}.png"> Change Summoner Icon to one shown, enter password, and click submit.
+	<br>	
+	<form method="post" action="/verify_summoner/confirm">
+		<input name="username" type="hidden" value="{{username}}">
+		<input name="region" type="hidden" value="{{region}}">
+		<input name="password" type="password">Password
+		<br>
+		<input name="verify" type="password">Confirm Password
+		<br>
+		<input type="submit">
+	</form>
+</body>
+</html>
