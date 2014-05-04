@@ -38,11 +38,16 @@ jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
 def get_user_api(username, region):
-    api_user_by_name = 'api/lol/' + region + '/v1.4/summoner/by-name/'
-    url = API_PATH + 'api/lol/' + region.lower() + '/v1.4/summoner/by-name/' + username.lower() + '?api_key=1483e7e5-b3f5-464a-90cf-97eae090febc'
-    user_response = json.loads(urllib2.urlopen(url).read())
+    url = API_PATH + 'api/lol/' + region.lower() + '/v1.4/summoner/by-name/' + username.lower() + API_KEY
+    api_response = json.loads(urllib2.urlopen(url).read())
     
-    return user_response
+    return api_response
+
+def get_league_api(summoner_id, region):
+    url = API_PATH + 'api/lol/' + region.lower() + '/v2.3/league/by-summoner/' + summoner_id + API_KEY
+    api_response = json.loads(urllib2.urlopen(url).read())
+    
+    return api_response
 
 def hash_cookie(s):
     h = hashlib.sha256(SECRET + s).hexdigest()
@@ -151,8 +156,10 @@ class confirmSummonerHandler(Handler):
         verify = self.request.get('verify')
         
         verify_icon = str(memcache.get('%s:verify_icon' % username))
+        
         json = get_user_api(username, region)
         player_icon = str(json[username]['profileIconId'])
+        summoner_id = str(json[username]['id'])
         
         if not valid_password(password):
             password_error = "Invalid password."
@@ -162,16 +169,17 @@ class confirmSummonerHandler(Handler):
             
         if verify_icon != player_icon:
             verification_error = "Please change your icon to the shown icon."
-            logging.error(verify_icon == player_icon)
         
         if not valid_password(password) or not verify_password(password, verify) or verify_icon != player_icon:
             self.render_errors(password_error, verify_error, verification_error, verify_icon)
         else:
+            league_json = get_league_api(summoner_id, region)
+            league = league_json[0]['tier']
+            
             self.response.headers['Content-Type'] = 'text/plain'
             self.response.headers.add_header('Set-Cookie', 'username=%s' % str(hash_cookie(username)))      
-            g = User(username = username, password = hash_pw(password), summoner_id = json[username]['id'])
+            g = User(username = username, password = hash_pw(password), summoner_id = int(summoner_id), region = region, league = league)
             g.put()
-            logging.error('Success!')
             self.redirect('/welcome')
         
         
