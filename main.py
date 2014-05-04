@@ -73,6 +73,8 @@ class User(db.Model):
     password = db.StringProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
     summoner_id = db.IntegerProperty(required = True)
+    region = db.StringProperty(required = True)
+    league = db.StringProperty(required = True)
 
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
@@ -145,23 +147,28 @@ class confirmSummonerHandler(Handler):
         
         username = self.request.get('username')
         region = self.request.get('region')
-        verify_icon = memcache.get('%s:verify_icon' % username)
         password = self.request.get('password')
         verify = self.request.get('verify')
         
+        verify_icon = str(memcache.get('%s:verify_icon' % username))
         json = get_user_api(username, region)
+        player_icon = str(json[username]['profileIconId'])
         
         if not valid_password(password):
             password_error = "Invalid password."
             
         if not verify_password(password, verify):
             verify_error = "Passwords don't match."
+            
+        if verify_icon != player_icon:
+            verification_error = "Please change your icon to the shown icon."
+            logging.error(verify_icon == player_icon)
         
-        if not valid_password(password) or not verify_password(password, verify) or verify_icon != json[username]['profileIconId']:
+        if not valid_password(password) or not verify_password(password, verify) or verify_icon != player_icon:
             self.render_errors(password_error, verify_error, verification_error, verify_icon)
         else:
             self.response.headers['Content-Type'] = 'text/plain'
-            self.response.headers.add_header('Set-Cookie', 'username=%s' % str(hash_cookie(username)))            
+            self.response.headers.add_header('Set-Cookie', 'username=%s' % str(hash_cookie(username)))      
             g = User(username = username, password = hash_pw(password), summoner_id = json[username]['id'])
             g.put()
             logging.error('Success!')
