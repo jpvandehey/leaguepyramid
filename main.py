@@ -146,7 +146,7 @@ class confirmSummonerHandler(Handler):
     
     def render_errors(self, password_error="", verify_error="", verification_error="", verify_icon=""):
         self.render("header.html")
-        self.render("verifysummoner.html")
+        self.render("verifysummoner.html", password_error=password_error, verify_error=verify_error, verify_icon=verify_icon)
 
     def post(self):
         password_error = ""
@@ -165,10 +165,6 @@ class confirmSummonerHandler(Handler):
         json = get_user_api(username, region)
         player_icon = str(json[username]['profileIconId'])
         summoner_id = str(json[username]['id'])
-        
-        logging.error(json)
-        logging.error(player_icon)
-        logging.error(verify_icon)
         
         if not valid_password(password):
             password_error = "Invalid password."
