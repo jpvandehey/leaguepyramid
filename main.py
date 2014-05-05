@@ -24,6 +24,7 @@ import random
 import hashlib
 import json
 import logging
+import time
 
 from google.appengine.api import memcache
 from google.appengine.ext import db
@@ -128,10 +129,12 @@ class verifySummonerHandler(Handler):
         region = self.request.get('region')    
         #Cache this   
         json = get_user_api(username, region)
-        profile_icon = json[username]['profileIconId']
+        profile_icon = str(json[username]['profileIconId'])
         
         if(profile_icon == '0'):
             verify_icon = '1'
+        elif(profile_icon == '1'):
+            verify_icon = '0'
         else:
             verify_icon = '0'
             
@@ -141,9 +144,9 @@ class verifySummonerHandler(Handler):
         
 class confirmSummonerHandler(Handler):
     
-    def render_errors(self, password_error="", verify_error="", verification_error="", verify_icon=""):                
+    def render_errors(self, password_error="", verify_error="", verification_error="", verify_icon=""):
         self.render("header.html")
-        self.render("verifysummoner.html", )
+        self.render("verifysummoner.html")
 
     def post(self):
         password_error = ""
@@ -157,9 +160,15 @@ class confirmSummonerHandler(Handler):
         
         verify_icon = str(memcache.get('%s:verify_icon' % username))
         
+        time.sleep(90)
+        
         json = get_user_api(username, region)
         player_icon = str(json[username]['profileIconId'])
         summoner_id = str(json[username]['id'])
+        
+        logging.error(json)
+        logging.error(player_icon)
+        logging.error(verify_icon)
         
         if not valid_password(password):
             password_error = "Invalid password."
