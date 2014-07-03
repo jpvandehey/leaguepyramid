@@ -31,7 +31,7 @@ from google.appengine.ext import db
 
 API_PATH = 'https://prod.api.pvp.net/'
 #Move this to a seperate file in the application and add a GIT exclusion to it.
-API_KEY = '?api_key=1483e7e5-b3f5-464a-90cf-97eae090febc'
+API_KEY = ''
 SECRET = 'H3ll0myFr1enDS'
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
